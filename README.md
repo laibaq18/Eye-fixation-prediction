@@ -7,3 +7,6 @@ Go to the folder where scripts and data is:
 
 3) Create predictions via:
 ``python3 predict_test.py   --data-root ../cv2_project_data   --checkpoint checkpoints/best.pt   --save-dir test_predictions``
+
+
+Input image : [B, 3, 224, 224] -> FCN ResNet-50 -> Raw logits : [B, 1, 224, 224] -> Gaussian smoothing : [B, 1, 224, 224] -> Add log center bias : [B, 1, 224, 224] -> Final fixation logits : [B, 1, 224, 224]
