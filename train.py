@@ -8,7 +8,11 @@ from tqdm import tqdm
 
 from dataset import EyeFixationDataset
 from model import EyeFixationFCN
+from SAM.model import EyeFixationSAMResNet
+from SAM.sam_loss import sam_loss
 
+
+# for SAM use sam_loss in train and val 
 
 def get_device():
     if torch.cuda.is_available():
@@ -29,6 +33,7 @@ def train_one_epoch(model, dataloader, optimizer, device):
         preds = model(images)
 
         loss = F.binary_cross_entropy_with_logits(preds, fixations)
+        # loss = sam_loss(preds,fixations)
 
         optimizer.zero_grad()
         loss.backward()
@@ -50,6 +55,7 @@ def validate(model, dataloader, device):
 
         preds = model(images)
         loss = F.binary_cross_entropy_with_logits(preds, fixations)
+        # loss = sam_loss(preds,fixations)
 
         total_loss += loss.item()
 
@@ -110,6 +116,8 @@ def main():
         freeze_backbone=args.freeze_backbone,
         image_size=(224, 224),
     ).to(device)
+
+    # model = EyeFixationSAMResNet()
 
     optimizer = torch.optim.AdamW(
         filter(lambda p: p.requires_grad, model.parameters()),

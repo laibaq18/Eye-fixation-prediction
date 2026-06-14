@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 
 from dataset import EyeFixationDataset
 from model import EyeFixationFCN
+from SAM.model import EyeFixationSAMResNet
 
 
 def get_device():
@@ -51,6 +52,8 @@ def main():
         freeze_backbone=True,
         image_size=(224, 224),
     ).to(device)
+
+    # model = EyeFixationSAMResNet()
 
     checkpoint = torch.load(args.checkpoint, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
