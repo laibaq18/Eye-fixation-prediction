@@ -35,7 +35,7 @@ class DeepGaze2(nn.Module):
         center_bias_path,
         freeze_backbone=True,
         feature_indices=(28, 29, 31, 32, 35),
-        reduced_channels=32,
+        # reduced_channels=32,
         use_smoothing=True,
     ):
         super().__init__()
@@ -44,19 +44,22 @@ class DeepGaze2(nn.Module):
         self.feature_indices = set(feature_indices)
         self.max_feature_index = max(feature_indices)
 
+        self.conv2_size = (112, 112)
+
         # ImageNet-pretrained VGG-19.
         vgg = vgg19(weights=VGG19_Weights.IMAGENET1K_V1)
 
         # We only need convolutional feature extractor, not the classifier.
         self.vgg_features = vgg.features
 
+        # Preserve pre-ReLU activations such as conv5_1, conv5_3
         for module in self.vgg_features.modules():
             if isinstance(module, nn.ReLU):
                 module.inplace = False
 
         if freeze_backbone:
             for param in self.vgg_features.parameters():
-                param.requires_grad = False
+                param.requires_grad = False # all filter/kernel maps should be used as learned in VGG-19
 
         selected_channels = {
             28: 512,  # conv5_1 -> 512 channels
@@ -67,12 +70,13 @@ class DeepGaze2(nn.Module):
         }
         # total: 2560 channels
 
-        self.reductions = nn.ModuleList([
-            nn.Conv2d(selected_channels[idx], reduced_channels, kernel_size=1)
-            for idx in feature_indices
-        ])
+        # self.reductions = nn.ModuleList([
+        #     nn.Conv2d(selected_channels[idx], reduced_channels, kernel_size=1)
+        #     for idx in feature_indices
+        # ])
 
-        total_channels = reduced_channels * len(feature_indices)
+        #total_channels = reduced_channels * len(feature_indices)
+        total_channels = 512 * len(feature_indices)
 
 
         self.readout = nn.Sequential(
@@ -128,7 +132,7 @@ class DeepGaze2(nn.Module):
         )
 
     def forward(self, x):
-        input_size = x.shape[-2:]
+        input_size = x.shape[-2:] #torch.Size([224, 224])
 
         features = []
         reduction_idx = 0
@@ -140,14 +144,15 @@ class DeepGaze2(nn.Module):
 
             if layer_idx in self.feature_indices:
                 h_selected = h.clone()
-                reduced = self.reductions[reduction_idx](h_selected)
+                #reduced = self.reductions[reduction_idx](h_selected)
 
                 #reduced = self.reductions[reduction_idx](h)
 
-                # Upsample each VGG feature map to original image size.
+                # upsample each VGG feature map to conv2 layer size = 112.
+                # [B, 512, 14, 14] -> [B, 512, 112, 112]
                 reduced = F.interpolate(
-                    reduced,
-                    size=input_size,
+                    h_selected,
+                    size=self.conv2_size,
                     mode="bilinear",
                     align_corners=False,
                 )
@@ -158,20 +163,29 @@ class DeepGaze2(nn.Module):
             if layer_idx >= self.max_feature_index:
                 break
 
-        # Shape: [B, reduced_channels * number_of_layers, H, W]
+        # Shape: [B, 512 * 5, H, W] -> [B, 2560, 112, 112] 
         features = torch.cat(features, dim=1)
 
-        # Shape: [B, 1, H, W]
+        # Shape: [B, 1, H, W] -> [B, 1, 112, 112] 
         raw_logits = self.readout(features)
+
+        # upsample from 112 to 224 to apply Gaussian and centerbias before softmax
+        # [B, 1, 224, 224]
+        saliency_logits = F.interpolate(
+            raw_logits,
+            size=input_size,
+            mode="bilinear",
+            align_corners=False,
+        )
 
         if self.use_smoothing:
             smoothed_logits = F.conv2d(
-                raw_logits,
+                saliency_logits,
                 self.smoothing_kernel,
                 padding="same",
             )
         else:
-            smoothed_logits = raw_logits
+            smoothed_logits = saliency_logits
 
         center_bias = self.log_center_bias
 
