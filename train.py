@@ -9,7 +9,7 @@ from tqdm import tqdm
 from dataset import EyeFixationDataset
 
 from FCN_with_Resnet50.model import EyeFixationFCN
-from DeepGaze2 import DeepGaze2
+from DeepGaze2.deepgaze_model import DeepGaze2
 from SAM.model import EyeFixationSAMResNet
 from SAM.sam_loss import sam_loss
 
