@@ -6,7 +6,9 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import EyeFixationDataset
-from model import EyeFixationFCN
+
+from FCN_with_Resnet50.model import EyeFixationFCN
+from DeepGaze2 import DeepGaze2
 from SAM.model import EyeFixationSAMResNet
 
 
@@ -22,12 +24,18 @@ def get_device():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=str, required=True)
-    parser.add_argument("--checkpoint", type=str, required=True)
+    parser.add_argument("--model_name", type=str, description="Model can be either FCN-resnet50 or deepgaze2 or SAM")
     parser.add_argument("--save-dir", type=str, default="test_predictions")
     args = parser.parse_args()
 
     data_root = Path(args.data_root)
-    save_dir = Path(args.save_dir)
+
+    model_name = args.model_name
+
+    checkpoint_dir = "checkpoints"+"_"+model_name"/best.pt"
+
+    prediction_dir = args.save_dir + "_" + args.model_name
+    save_dir = Path(prediction_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
 
     device = get_device()
@@ -42,20 +50,31 @@ def main():
 
     test_loader = DataLoader(
         test_dataset,
-        batch_size=1,
+        batch_size=4,
         shuffle=False,
         num_workers=0,
     )
 
-    model = EyeFixationFCN(
+    if model_name == "FCN-resnet50":
+        model = EyeFixationFCN(
         center_bias_path=data_root / "center_bias_density.npy",
         freeze_backbone=True,
         image_size=(224, 224),
-    ).to(device)
+        ).to(device)
 
-    # model = EyeFixationSAMResNet()
+    elif model_name == "deepgaze2":
+        model = DeepGaze2(
+        center_bias_path=data_root / "center_bias_density.npy",
+        freeze_backbone=True,
+        feature_indices=(28, 29, 31, 32, 35),
+        use_smoothing=True,
+        ).to(device)
 
-    checkpoint = torch.load(args.checkpoint, map_location=device)
+    elif model_name == "SAM":
+        model = EyeFixationSAMResNet()
+
+
+    checkpoint = torch.load(checkpoint_dir, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
