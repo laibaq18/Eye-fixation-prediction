@@ -7,12 +7,14 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from dataset import EyeFixationDataset
-from model import EyeFixationFCN
+
+from FCN_with_Resnet50.model import EyeFixationFCN
+from DeepGaze2 import DeepGaze2
 from SAM.model import EyeFixationSAMResNet
 from SAM.sam_loss import sam_loss
 
+import yaml
 
-# for SAM use sam_loss in train and val 
 
 def get_device():
     if torch.cuda.is_available():
@@ -22,7 +24,7 @@ def get_device():
     return torch.device("cpu")
 
 
-def train_one_epoch(model, dataloader, optimizer, device):
+def train_one_epoch(model, dataloader, optimizer, device, model_name):
     model.train()
     total_loss = 0.0
 
@@ -32,8 +34,12 @@ def train_one_epoch(model, dataloader, optimizer, device):
 
         preds = model(images)
 
-        loss = F.binary_cross_entropy_with_logits(preds, fixations)
-        # loss = sam_loss(preds,fixations)
+        if model_name == "FCN-resnet50":
+            loss = F.binary_cross_entropy_with_logits(preds, fixations)
+        elif model_name == "deepgaze2":
+            loss = F.binary_cross_entropy_with_logits(preds, fixations)
+        elif model_name == "SAM":
+            loss = sam_loss(preds,fixations)
 
         optimizer.zero_grad()
         loss.backward()
@@ -45,7 +51,7 @@ def train_one_epoch(model, dataloader, optimizer, device):
 
 
 @torch.no_grad()
-def validate(model, dataloader, device):
+def validate(model, dataloader, device, model_name):
     model.eval()
     total_loss = 0.0
 
@@ -54,8 +60,13 @@ def validate(model, dataloader, device):
         fixations = batch["fixation"].to(device)
 
         preds = model(images)
-        loss = F.binary_cross_entropy_with_logits(preds, fixations)
-        # loss = sam_loss(preds,fixations)
+
+        if model_name == "FCN-resnet50":
+            loss = F.binary_cross_entropy_with_logits(preds, fixations)
+        elif model_name == "deepgaze2":
+            loss = F.binary_cross_entropy_with_logits(preds, fixations)
+        elif model_name == "SAM":
+            loss = sam_loss(preds,fixations)
 
         total_loss += loss.item()
 
@@ -65,15 +76,23 @@ def validate(model, dataloader, device):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=str, required=True)
-    parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--batch-size", type=int, default=4)
-    parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--freeze-backbone", action="store_true")
+    parser.add_argument("--model_name", type=str, description="Model can be either FCN-resnet50 or deepgaze2 or SAM")
     parser.add_argument("--save-dir", type=str, default="checkpoints")
     args = parser.parse_args()
 
+    with open("configs.yaml", "r") as f:
+        config = yaml.load(f)
+
+    epochs = config['training_params']['epochs']
+    learning_rate = config['training_params']['lr']
+    batch-size = config['training_params']['batch-size']
+    decay_rate = config['training_params']['weight_decay']
+    model_name = args.model_name
+
     data_root = Path(args.data_root)
-    save_dir = Path(args.save_dir)
+
+    checkpoint_dir = args.save_dir + "_" + args.model_name
+    save_dir = Path(checkpoint_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
 
     device = get_device()
@@ -97,7 +116,7 @@ def main():
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=args.batch_size,
+        batch_size=batch_size,
         shuffle=True,
         num_workers=0,
         pin_memory=pin_memory,
@@ -105,24 +124,34 @@ def main():
 
     val_loader = DataLoader(
         val_dataset,
-        batch_size=args.batch_size,
+        batch_size=batch_size,
         shuffle=False,
         num_workers=0,
         pin_memory=pin_memory,
     )
 
-    model = EyeFixationFCN(
+    if model_name == "FCN-resnet50":
+        model = EyeFixationFCN(
         center_bias_path=data_root / "center_bias_density.npy",
-        freeze_backbone=args.freeze_backbone,
+        freeze_backbone=True,
         image_size=(224, 224),
-    ).to(device)
+        ).to(device)
 
-    # model = EyeFixationSAMResNet()
+    elif model_name == "deepgaze2":
+        model = DeepGaze2(
+        center_bias_path=data_root / "center_bias_density.npy",
+        freeze_backbone=True,
+        feature_indices=(28, 29, 31, 32, 35),
+        use_smoothing=True,
+        ).to(device)
+
+    elif model_name == "SAM":
+        model = EyeFixationSAMResNet()
 
     optimizer = torch.optim.AdamW(
         filter(lambda p: p.requires_grad, model.parameters()),
-        lr=args.lr,
-        weight_decay=1e-4,
+        lr=learning_rate,
+        weight_decay=decay_rate,
     )
 
     # checking everything before running epochs:
@@ -141,11 +170,11 @@ def main():
 
     best_val_loss = float("inf")
 
-    for epoch in range(args.epochs):
-        print(f"\nEpoch {epoch + 1}/{args.epochs}")
+    for epoch in range(epochs):
+        print(f"\nEpoch {epoch + 1}/{epochs}")
 
-        train_loss = train_one_epoch(model, train_loader, optimizer, device)
-        val_loss = validate(model, val_loader, device)
+        train_loss = train_one_epoch(model, train_loader, optimizer, device, model_name)
+        val_loss = validate(model, val_loader, device, model_name)
 
         print(f"Train loss: {train_loss:.6f}")
         print(f"Val loss:   {val_loss:.6f}")
