@@ -10,6 +10,7 @@ from dataset import EyeFixationDataset
 
 from FCN_with_Resnet50.model import EyeFixationFCN
 from DeepGaze2.deepgaze_model import DeepGaze2
+from DeepGaze2.deepgaze_loss import deepgaze_density_loss
 from SAM.model import EyeFixationSAMResNet
 from SAM.sam_loss import sam_loss
 
@@ -37,7 +38,7 @@ def train_one_epoch(model, dataloader, optimizer, device, model_name):
         if model_name == "FCN-resnet50":
             loss = F.binary_cross_entropy_with_logits(preds, fixations)
         elif model_name == "deepgaze2":
-            loss = F.binary_cross_entropy_with_logits(preds, fixations)
+            loss = deepgaze_density_loss(preds, fixations)
         elif model_name == "SAM":
             loss = sam_loss(preds,fixations)
 
@@ -64,7 +65,7 @@ def validate(model, dataloader, device, model_name):
         if model_name == "FCN-resnet50":
             loss = F.binary_cross_entropy_with_logits(preds, fixations)
         elif model_name == "deepgaze2":
-            loss = F.binary_cross_entropy_with_logits(preds, fixations)
+            loss = deepgaze_density_loss(preds, fixations)
         elif model_name == "SAM":
             loss = sam_loss(preds,fixations)
 
