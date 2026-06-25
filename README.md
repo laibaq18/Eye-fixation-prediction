@@ -11,6 +11,10 @@ Go to the folder where scripts and data is:
 FCN Resnet50:
 Input image : [B, 3, 224, 224] -> FCN ResNet-50 -> Raw logits : [B, 1, 224, 224] -> Gaussian smoothing : [B, 1, 224, 224] -> Add log center bias : [B, 1, 224, 224] -> Final fixation logits : [B, 1, 224, 224]
 
+^ uses BCE loss
+
+<br>
+<br>
 
 DeepGaze2 Like:
 Input image : [B, 3, 224, 224] -> Frozen VGG-19 feature extractor -> Selected VGG features:
@@ -35,4 +39,4 @@ Input image : [B, 3, 224, 224] -> Frozen VGG-19 feature extractor -> Selected VG
 -> Raw fixation logits: [B, 1, 112, 112] -> Upsample to orig img size: [B, 1, 224, 224] -> Gaussian smoothing: [B, 1, 224, 224]  -> Add log center bias: [B, 1, 224, 224] -> Final fixation logits: [B, 1, 224, 224]
 
 
-^^ Loss for this is still BCE, not DeepGaze II actual likelihood loss
+^^ uses DeepGaze II likelihood loss
