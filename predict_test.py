@@ -32,7 +32,7 @@ def main():
 
     model_name = args.model_name
 
-    checkpoint_dir = "checkpoints"+"_"+model_name"/best.pt"
+    checkpoint_dir = (Path(f"checkpoints_{model_name}") / "best.pt")
 
     prediction_dir = args.save_dir + "_" + args.model_name
     save_dir = Path(prediction_dir)
@@ -84,8 +84,20 @@ def main():
 
         logits = model(images)
 
-        # Convert logits to probabilities in [0,1]
-        probs = torch.sigmoid(logits)
+        # For DeepGaze visualization.. Do not use sigmoid. Use spatial softmax:
+        if model_name == "deepgaze2":
+            log_density = logits - torch.logsumexp(
+                logits,
+                dim=(2, 3),
+                keepdim=True,
+            )
+
+            density = torch.exp(log_density)
+            probs = density / density.max()
+
+        else:
+            # Convert logits to probabilities in [0,1]
+            probs = torch.sigmoid(logits)
 
         # Shape: [1, 1, H, W] -> [H, W]
         pred = probs.squeeze(0).squeeze(0)
