@@ -1,3 +1,5 @@
+#TODO: ROC-AUC Comparison of all models
+
 Go to the folder where scripts and data is:
 
 1) Create virtual environment and install dependencies
