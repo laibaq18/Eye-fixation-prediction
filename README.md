@@ -18,7 +18,8 @@ Input image : [B, 3, 224, 224] -> FCN ResNet-50 -> Raw logits : [B, 1, 224, 224]
 <br>
 <br>
 
-DeepGaze2 Like:
+DeepGaze2 Like: <br>
+https://arxiv.org/pdf/1610.01563 <br>
 Input image : [B, 3, 224, 224] -> Frozen VGG-19 feature extractor -> Selected VGG features:
       conv5_1 : [B, 512, 14, 14] <br>
       relu5_1 : [B, 512, 14, 14] <br>
