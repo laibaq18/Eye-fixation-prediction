@@ -1,4 +1,4 @@
-#TODO: ROC-AUC Comparison of all models
+#TODO: ROC-AUC Comparison of all models (updated code is in cvcp20)
 
 Go to the folder where scripts and data is:
 
