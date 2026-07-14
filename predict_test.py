@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from dataset import EyeFixationDataset
 
 from FCN_with_Resnet50.model import EyeFixationFCN
-from DeepGaze2 import DeepGaze2
+from DeepGaze2.deepgaze_model import DeepGaze2
 from SAM.model import EyeFixationSAMResNet
 
 
@@ -24,7 +24,7 @@ def get_device():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=str, required=True)
-    parser.add_argument("--model_name", type=str, description="Model can be either FCN-resnet50 or deepgaze2 or SAM")
+    parser.add_argument("--model_name", type=str, help="Model can be either FCN-resnet50 or deepgaze2 or SAM")
     parser.add_argument("--save-dir", type=str, default="test_predictions")
     args = parser.parse_args()
 
@@ -83,33 +83,90 @@ def main():
         names = batch["name"]
 
         logits = model(images)
+        # logits: [B, 1, 224, 224]
 
-        # For DeepGaze visualization.. Do not use sigmoid. Use spatial softmax:
         if model_name == "deepgaze2":
+            # Spatial log-softmax.
             log_density = logits - torch.logsumexp(
                 logits,
                 dim=(2, 3),
                 keepdim=True,
             )
 
+            # Actual probability distribution.
             density = torch.exp(log_density)
-            probs = density / density.max()
+
+            print(
+                "DeepGaze density sums:",
+                density.sum(dim=(2, 3)).cpu(),
+            )
+
+            # Normalize only for visible PNG output.
+            probs = density / density.amax(
+                dim=(2, 3),
+                keepdim=True,
+            ).clamp_min(1e-8)
 
         else:
-            # Convert logits to probabilities in [0,1]
+            # BCE-trained independent pixel probabilities.
             probs = torch.sigmoid(logits)
 
-        # Shape: [1, 1, H, W] -> [H, W]
-        pred = probs.squeeze(0).squeeze(0)
+        for pred, name in zip(probs, names):
+            # [1, H, W] -> [H, W]
+            pred = pred.squeeze(0)
 
-        # Convert to uint8 grayscale image
-        pred_uint8 = (pred.clamp(0, 1) * 255).to(torch.uint8)
-        pred_np = pred_uint8.cpu().numpy()
+            pred_uint8 = (
+                pred.clamp(0, 1) * 255
+            ).round().to(torch.uint8)
 
-        image_name = Path(names[0]).stem
-        out_path = save_dir / f"{image_name}.png"
+            pred_np = pred_uint8.cpu().numpy()
 
-        imageio.imwrite(out_path, pred_np)
+            print(
+                name,
+                "saved shape:",
+                pred_np.shape,
+                "min/max:",
+                pred_np.min(),
+                pred_np.max(),
+            )
+
+            image_name = Path(name).stem
+            out_path = save_dir / f"{image_name}.png"
+
+            imageio.imwrite(out_path, pred_np)
+
+    # for batch in test_loader:
+    #     images = batch["image"].to(device)
+    #     names = batch["name"]
+
+    #     logits = model(images)
+
+    #     # For DeepGaze visualization.. Do not use sigmoid. Use spatial softmax:
+    #     if model_name == "deepgaze2":
+    #         log_density = logits - torch.logsumexp(
+    #             logits,
+    #             dim=(2, 3),
+    #             keepdim=True,
+    #         )
+
+    #         density = torch.exp(log_density)
+    #         probs = density / density.max()
+
+    #     else:
+    #         # Convert logits to probabilities in [0,1]
+    #         probs = torch.sigmoid(logits)
+
+    #     # Shape: [1, 1, H, W] -> [H, W]
+    #     pred = probs.squeeze(0).squeeze(0)
+
+    #     # Convert to uint8 grayscale image
+    #     pred_uint8 = (pred.clamp(0, 1) * 255).to(torch.uint8)
+    #     pred_np = pred_uint8.cpu().numpy()
+
+    #     image_name = Path(names[0]).stem
+    #     out_path = save_dir / f"{image_name}.png"
+
+    #     imageio.imwrite(out_path, pred_np)
 
     print(f"Saved predictions to: {save_dir}")
 
