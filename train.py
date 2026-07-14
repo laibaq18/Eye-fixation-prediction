@@ -77,17 +77,17 @@ def validate(model, dataloader, device, model_name):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=str, required=True)
-    parser.add_argument("--model_name", type=str, description="Model can be either FCN-resnet50 or deepgaze2 or SAM")
+    parser.add_argument("--model_name", type=str, help="Model can be either FCN-resnet50 or deepgaze2 or SAM")
     parser.add_argument("--save-dir", type=str, default="checkpoints")
     args = parser.parse_args()
 
     with open("configs.yaml", "r") as f:
-        config = yaml.load(f)
+        config = yaml.load(f, Loader=yaml.FullLoader)
 
-    epochs = config['training_params']['epochs']
-    learning_rate = config['training_params']['lr']
-    batch-size = config['training_params']['batch-size']
-    decay_rate = config['training_params']['weight_decay']
+    epochs = int(config['training_params']['epochs'])
+    learning_rate = float(config['training_params']['lr'])
+    batch_size = int(config['training_params']['batch-size'])
+    decay_rate = float(config['training_params']['weight_decay'])
     model_name = args.model_name
 
     data_root = Path(args.data_root)
@@ -147,7 +147,7 @@ def main():
         ).to(device)
 
     elif model_name == "SAM":
-        model = EyeFixationSAMResNet()
+        model = EyeFixationSAMResNet().to(device)
 
     optimizer = torch.optim.AdamW(
         filter(lambda p: p.requires_grad, model.parameters()),
