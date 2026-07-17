@@ -1,0 +1,4 @@
+Number of valid images: 1128
+Mean AUC-Judd: 0.891030
+Median AUC-Judd: 0.915717
+Std AUC-Judd: 0.088029

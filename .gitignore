@@ -1,0 +1,7 @@
+/data/
+/.venv/
+/checkpoints/
+/__pycache__/
+checkpoints*/
+test_predictions*/
+aqsa-temp(ignore)/
