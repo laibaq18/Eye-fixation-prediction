@@ -57,7 +57,6 @@ Input image : [B, 3, 224, 224] -> Frozen VGG-19 feature extractor -> Selected VG
 ![PyTorch](https://img.shields.io/badge/-PyTorch-EE4C2C?style=flat&logo=pytorch&logoColor=white)
 ![Computer Vision](https://img.shields.io/badge/-Computer%20Vision-5C2D91?style=flat)
 ![Status](https://img.shields.io/badge/status-active-brightgreen)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 *Comparing how three deep learning architectures predict where a human eye will look in an image.*
 
@@ -75,7 +74,7 @@ This project implements, trains, and evaluates **three** deep saliency models un
 - **DeepGaze II** — frozen VGG-19 features + a learned readout network
 - **FCN-ResNet50** — a fully convolutional baseline
 
-> 📚 Group project for *Computer Vision 2*, University of Hamburg — with [Aqsa Mohsin](https://github.com/AQSAMOHSIN).
+> Group project for *Computer Vision 2*, University of Hamburg — with [Aqsa Mohsin](https://github.com/AQSAMOHSIN).
 
 ---
 
@@ -132,13 +131,13 @@ Loss:  Binary Cross-Entropy (BCE)
 
 ---
 
-## 🗂️ Dataset
+## Dataset
 
 A paired image / eye-fixation-density-map dataset (`cv2_project_data`), loaded through a custom PyTorch `Dataset`. Images and fixation maps are resized to 224×224, normalized with ImageNet statistics for the CNN backbones, and unnormalized copies are kept for visualization.
 
 > ℹ️ This is course-provided data 
 
-## ⚙️ Training Setup
+## Training Setup
 
 | | |
 |---|---|
