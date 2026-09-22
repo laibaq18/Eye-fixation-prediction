@@ -56,7 +56,6 @@ Input image : [B, 3, 224, 224] -> Frozen VGG-19 feature extractor -> Selected VG
 ![Python](https://img.shields.io/badge/-Python-3776AB?style=flat&logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/-PyTorch-EE4C2C?style=flat&logo=pytorch&logoColor=white)
 ![Computer Vision](https://img.shields.io/badge/-Computer%20Vision-5C2D91?style=flat)
-![Status](https://img.shields.io/badge/status-active-brightgreen)
 
 *Comparing how three deep learning architectures predict where a human eye will look in an image.*
 
@@ -64,7 +63,7 @@ Input image : [B, 3, 224, 224] -> Frozen VGG-19 feature extractor -> Selected VG
 
 ---
 
-## 🎯 Overview
+## Overview
 
 Visual saliency prediction estimates the regions of an image that naturally draw human attention making it useful in robotics, image compression, autonomous systems, UX research, and human-computer interaction.
 
@@ -78,7 +77,7 @@ This project implements, trains, and evaluates **three** deep saliency models un
 
 ---
 
-## 🧠 Models
+## Models
 
 <details>
 <summary><strong>SAM - Saliency Attentive Model</strong></summary>
@@ -149,7 +148,7 @@ A paired image / eye-fixation-density-map dataset (`cv2_project_data`), loaded t
 
 ---
 
-## 📊 Results
+## Results
 
 Evaluated on a held-out test set of **1,128 images**, AUC-Judd metric:
 
@@ -205,7 +204,7 @@ python3 auc_score.py
 
 ---
 
-## 📚 References
+## References
 - Cornia et al., *Predicting Human Eye Fixations via an LSTM-based Saliency Attentive Model*, IEEE TIP 2018 - [arXiv:1611.09571](https://arxiv.org/abs/1611.09571)
 - Kümmerer et al., *DeepGaze II: Reading fixations from deep features trained on object recognition* - [arXiv:1610.01563](https://arxiv.org/pdf/1610.01563)
 
